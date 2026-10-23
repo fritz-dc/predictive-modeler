@@ -1,0 +1,13 @@
+# What the pipeline runs: one entry per label.
+#   label:            a label_* column present in both feature CSVs
+#   cohorts:          required; names from cohorts.yaml
+#   exclude_features: optional; columns to keep out of this label's models (must exist in both CSVs)
+# Task type is detected from the label's values. Only 0/1 classification labels are supported.
+
+runs:
+  - label: label_green_revenue_next_365d
+    cohorts: [major_gift_prospects, loyalists]
+  - label: label_will_make_daf_gift_next_365d
+    cohorts: [non_daf_donors]
+  # - label: label_green_revenue_next_365d
+  #   cohorts: [all_donors]

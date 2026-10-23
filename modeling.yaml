@@ -1,0 +1,87 @@
+# Modeling settings: everything the pipeline reads besides cohort definitions (cohorts.yaml)
+# and the job list (jobruns.yaml). Unknown keys fail at startup.
+# random_state comes from SEED in the script; don't set it here.
+
+cv_folds: 5
+
+feature_selection:              # fit on each CV training fold, then on all training rows
+  correlation_threshold: 0.95   # drop one of each pair with |correlation| above this; null to skip
+  top_n: 100                    # keep the top N features by LightGBM gain; null to keep all
+
+evaluation:
+  depths: [0.01, 0.05, 0.10, 0.25]   # campaign depths for capture and lift
+  bootstrap: {n_boot: 1000, ci: 0.90}
+
+# Candidate models. Fixed settings go in base_params; settings to tune go in cv_search.param_grid.
+# Every combination in a grid is cross-validated for every label and cohort, so keep grids small.
+classification:
+  logreg:
+    enabled: true
+    base_params:
+      max_iter: 1000
+    cv_search:
+      enabled: true
+      param_grid:                 # 14 combinations; C spans strong to light regularization for rare and common labels
+        C: [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0]
+        class_weight: [balanced, null]
+    calibration:
+      enabled: false              # scores are used for ranking; set true (method: sigmoid) if a label needs probabilities
+
+  lgbm:
+    enabled: true
+    base_params:
+      class_weight: balanced
+      n_estimators: 800
+      learning_rate: 0.03
+      max_depth: 3
+      num_leaves: 15
+      reg_alpha: 1.0
+      reg_lambda: 1.0
+      verbose: -1
+    cv_search:
+      enabled: true
+      param_grid:                 # 4 combinations
+        min_child_samples: [100, 300]
+        colsample_bytree: [0.6, 0.8]
+    calibration:
+      enabled: false
+
+regression:
+  ridge:
+    enabled: true
+    cv_search:
+      enabled: true
+      param_grid:
+        alpha: [0.01, 0.1, 1.0, 10.0, 100.0]
+
+  tweedie:
+    enabled: true
+    base_params:
+      power: 1.5                  # compound Poisson, for zero-inflated revenue
+      max_iter: 1000
+    cv_search:
+      enabled: true
+      param_grid:
+        alpha: [0.1, 0.5, 1.0, 2.0, 5.0]
+
+  lgbm_regressor:
+    enabled: true
+    base_params:
+      n_estimators: 500
+      learning_rate: 0.03
+      num_leaves: 15
+      min_child_samples: 300
+      colsample_bytree: 0.6
+      reg_alpha: 1.0
+      reg_lambda: 1.0
+      verbose: -1
+    cv_search:
+      enabled: true
+      param_grid:                 # 2 combinations
+        max_depth: [3, 4]
+
+best_model_selection:
+  manual_selection: null          # a model name (e.g. lgbm) forces that model for every label and cohort
+  # cv_scoring:                   # defaults shown; capture_at_0.10 selects on capture in the top 10%
+  #   classification: roc_auc
+  #   regression: neg_mean_squared_error

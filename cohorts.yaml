@@ -1,0 +1,252 @@
+# Cohort definitions. jobruns.yaml chooses which cohorts run for each label.
+# All filters in a cohort must hold (AND). Each column can appear once per cohort,
+# so use 'between' (inclusive) for ranges.
+# Operators: ==, !=, >, >=, <, <=, between, not_null, is_null.
+
+cohorts:
+  all_donors:
+    description: All donors
+    filters:
+      first_donation_date: {operator: not_null}
+
+  # Lifecycle
+  first_time_donors:
+    description: Exactly 1 gift
+    filters:
+      max_donation_sequence_number: {operator: '==', value: 1}
+  repeat_donors:
+    description: 2+ gifts
+    filters:
+      max_donation_sequence_number: {operator: '>', value: 1}
+  loyalists:
+    description: 3+ years tenure and 5+ gifts
+    filters:
+      tenure_years: {operator: '>=', value: 3}
+      lifetime_gift_count: {operator: '>=', value: 5}
+
+  # Lifetime value
+  high_value:
+    description: $1,000+ lifetime
+    filters:
+      lifetime_amount: {operator: '>=', value: 1000}
+  mid_value:
+    description: $100 to under $1,000 lifetime
+    filters:
+      lifetime_amount: {operator: between, value: [100, 999.99]}
+  low_value:
+    description: Under $100 lifetime
+    filters:
+      lifetime_amount: {operator: '<', value: 100}
+  high_value_recent:
+    description: $1,000+ lifetime and $500+ in the last 12 months
+    filters:
+      lifetime_amount: {operator: '>=', value: 1000}
+      gift_amount_12m: {operator: '>=', value: 500}
+
+  # Recency (boundary days fall in both neighboring cohorts)
+  recent_active:
+    description: Gave in the last 90 days
+    filters:
+      days_since_last_gift: {operator: '<=', value: 90}
+  lapsed_90to365:
+    description: Last gift 90-365 days ago
+    filters:
+      days_since_last_gift: {operator: between, value: [90, 365]}
+  lapsed_1to2yr:
+    description: Last gift 365-730 days ago
+    filters:
+      days_since_last_gift: {operator: between, value: [365, 730]}
+
+  # Channel
+  monthly_subscribers:
+    description: Current monthly donors
+    filters:
+      is_monthly_donor_current: {operator: '==', value: 1}
+  project_only:
+    description: One-time project donors only (no monthly)
+    filters:
+      is_project_only_donor: {operator: '==', value: 1}
+  hybrid_donors:
+    description: Both project and monthly giving
+    filters:
+      is_hybrid_donor: {operator: '==', value: 1}
+
+  # Acquisition and donor type
+  teacher_referred:
+    description: Acquired via teacher referral
+    filters:
+      is_teacher_referred: {operator: '==', value: 1}
+  teachers:
+    description: Donors who are teachers
+    filters:
+      is_teacher: {operator: '==', value: 1}
+  major_gift_donors:
+    description: Flagged as major gift donors
+    filters:
+      is_major_gift_donor: {operator: '==', value: 1}
+  non_daf_donors:
+    description: No prior DAF giving, $1,000+ lifetime
+    filters:
+      pct_amount_daf_lifetime: {operator: '==', value: 0}
+      pct_count_daf_lifetime: {operator: '==', value: 0}
+      lifetime_amount: {operator: '>=', value: 1000}
+
+  # Recent giving
+  recent_high_givers:
+    description: $500+ in the last 12 months
+    filters:
+      gift_amount_12m: {operator: '>=', value: 500}
+  recent_moderate_givers:
+    description: $100 to under $500 in the last 12 months
+    filters:
+      gift_amount_12m: {operator: between, value: [100, 499.99]}
+  recent_tiptop_prospects:
+    description: $1,000-$200,000 in the last 12 months
+    filters:
+      gift_amount_12m: {operator: between, value: [1000, 200000]}
+  frequent_givers:
+    description: 5+ gifts in the last 12 months
+    filters:
+      gift_count_12m: {operator: '>=', value: 5}
+  mlg_prospecting:
+    description: $600+ in the last 12 months, not a teacher
+    filters:
+      gift_amount_12m: {operator: '>=', value: 600}
+      is_teacher: {operator: '==', value: 0}
+
+  # Geography and preferences
+  local_donors:
+    description: Gives locally (within 25 miles)
+    filters:
+      is_local_donor: {operator: '==', value: 1}
+  green_heavy:
+    description: Over 50% of lifetime giving via green payment
+    filters:
+      pct_amount_green_lifetime: {operator: '>', value: 0.5}
+  value_800_to_3000:
+    description: $800-$3,000 green giving in the last 12 months
+    filters:
+      gift_amount_green_12m: {operator: between, value: [800, 3000]}
+
+  # First-time donor segments
+  first_time_trd:
+    description: First-time, teacher-referred, not a teacher
+    filters:
+      max_donation_sequence_number: {operator: '==', value: 1}
+      is_teacher_referred: {operator: '==', value: 1}
+      is_teacher: {operator: '==', value: 0}
+  first_time_no_teacher_connection:
+    description: First-time, not teacher-referred, not a teacher
+    filters:
+      max_donation_sequence_number: {operator: '==', value: 1}
+      is_teacher_referred: {operator: '==', value: 0}
+      is_teacher: {operator: '==', value: 0}
+  first_time_no_future_targeting:
+    description: First-time, not a teacher, teacher and school no longer available
+    filters:
+      max_donation_sequence_number: {operator: '==', value: 1}
+      is_teacher: {operator: '==', value: 0}
+      top_school_open_project_at_T: {operator: '==', value: 0}
+      top_teacher_open_project_at_T: {operator: '==', value: 0}
+
+  # Email
+  email_engaged:
+    description: Opened an email in the last 3 months
+    filters:
+      emails_opened_3m: {operator: '>', value: 0}
+
+  # Monthly conversion: label_will_start_monthly_next_90d / _365d
+  non_monthly_donors:
+    description: Not currently giving monthly
+    filters:
+      is_monthly_donor_current: {operator: '!=', value: 1}
+  never_monthly:
+    description: Never given monthly
+    filters:
+      has_monthly_history: {operator: '==', value: 0}
+  lapsed_monthly:
+    description: Gave monthly before, not currently monthly
+    filters:
+      is_monthly_donor_current: {operator: '==', value: 0}
+
+  # DAF: label_will_shift_to_daf_heavy_next_12m, label_daf_revenue_next_365d
+  daf_donors:
+    description: Has given through a DAF
+    filters:
+      pct_count_daf_lifetime: {operator: '>', value: 0}
+
+  # Upgrades: label_will_make_major_gift_next_24m, label_will_cross_midlevel_threshold_next_12m
+  major_gift_prospects:
+    description: $800 to $10,000 in the last year
+    filters:
+      gift_amount_12m: {operator: between, value: [800, 9999.99]}
+  below_midlevel:
+    description: $100 to under $1,000 in the last 12 months
+    filters:
+      gift_amount_12m: {operator: between, value: [100, 999.99]}
+
+  # Reactivation: label_will_give_next_30d / _90d / _365d
+  lapsed_2yr_plus:
+    description: Last gift more than 2 years ago
+    filters:
+      days_since_last_gift: {operator: '>', value: 730}
+
+  # Email: label_will_open_next_campaign_email, label_will_click_next_campaign_email
+  email_reachable:
+    description: Sent at least one email in the last 12 months
+    filters:
+      emails_sent_12m: {operator: '>', value: 0}
+  email_unengaged:
+    description: Emailed in the last 12 months but opened none
+    filters:
+      emails_sent_12m: {operator: '>', value: 0}
+      emails_opened_12m: {operator: '==', value: 0}
+
+  # Product behaviors: label_will_use_account_credit_next_90d, label_will_give_to_teacher_previously_supported_next_365d
+  has_account_credit:
+    description: Unused account credit at T
+    filters:
+      credit_balance_at_T: {operator: '>', value: 0}
+  teacher_still_available:
+    description: A previously supported teacher is still posting
+    filters:
+      teacher_still_available_during_range: {operator: '==', value: 1}
+
+  # ---- Diagnostic segments: for checking the model in the validation report ----
+  first_year_donors:
+    description: First gift less than a year before T
+    filters:
+      tenure_days: {operator: '<', value: 365}
+  second_year_donors:
+    description: First gift 1-2 years before T
+    filters:
+      tenure_days: {operator: between, value: [365, 730]}
+  recent_first_time:
+    description: One gift, made in the last 12 months
+    filters:
+      max_donation_sequence_number: {operator: '==', value: 1}
+      days_since_last_gift: {operator: '<=', value: 365}
+  year_end_givers:
+    description: Has given in Q4
+    filters:
+      pct_occasions_q4_lifetime: {operator: '>', value: 0}
+  back_to_school_givers:
+    description: Has given during back-to-school season
+    filters:
+      pct_amount_in_back_to_school: {operator: '>', value: 0}
+  event_givers:
+    description: Has given during a big giving event
+    filters:
+      pct_amount_big_event_lifetime: {operator: '>', value: 0}
+  match_givers:
+    description: Has given with a match offer
+    filters:
+      pct_gifts_with_match: {operator: '>', value: 0}
+  gift_card_users:
+    description: Used a gift card in the last 12 months
+    filters:
+      pct_gifts_gift_card_12m: {operator: '>', value: 0}
+  ad_sourced_recent:
+    description: Gave through an ad in the last 12 months
+    filters:
+      pct_occasions_src_ad_12m: {operator: '>', value: 0}
